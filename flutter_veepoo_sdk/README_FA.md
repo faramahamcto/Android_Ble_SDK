@@ -4,6 +4,7 @@
 
 ## 📚 مستندات
 
+- **[راهنمای نصب گام‌به‌گام](https://github.com/faramahamcto/Android_Ble_SDK/blob/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/INSTALLATION.md)** - نصب کامل با جزئیات (فارسی)
 - **[مرجع سریع](https://github.com/faramahamcto/Android_Ble_SDK/blob/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/QUICK_REFERENCE.md)** - جستجوی سریع نوع پارامترها (فارسی)
 - **[راهنمای کامل نوع داده‌ها](https://github.com/faramahamcto/Android_Ble_SDK/blob/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/DATA_TYPES_GUIDE.md)** - راهنمای جامع همه نوع داده‌ها (فارسی و انگلیسی)
 - **[برنامه مثال](https://github.com/faramahamcto/Android_Ble_SDK/tree/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/example)** - نمونه کامل با رابط کاربری

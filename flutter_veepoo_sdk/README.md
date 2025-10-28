@@ -4,6 +4,7 @@ A Flutter plugin for integrating VeepooSDK - a Bluetooth Low Energy (BLE) toolki
 
 ## 📚 Documentation
 
+- **[Installation Guide](https://github.com/faramahamcto/Android_Ble_SDK/blob/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/INSTALLATION.md)** - Step-by-step installation (Persian)
 - **[Quick Reference](https://github.com/faramahamcto/Android_Ble_SDK/blob/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/QUICK_REFERENCE.md)** - Fast lookup for parameter types
 - **[Data Types Guide](https://github.com/faramahamcto/Android_Ble_SDK/blob/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/DATA_TYPES_GUIDE.md)** - Complete guide for all data types (English & Persian)
 - **[Example App](https://github.com/faramahamcto/Android_Ble_SDK/tree/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/example)** - Full working example with UI
