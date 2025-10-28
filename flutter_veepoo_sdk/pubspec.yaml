@@ -1,0 +1,25 @@
+name: flutter_veepoo_sdk
+description: Flutter plugin for VeepooSDK - BLE communication with smartwatches and fitness bands
+version: 1.0.0
+homepage: https://github.com/faramahamcto/Android_Ble_SDK
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.veepoo.flutter_veepoo_sdk
+        pluginClass: FlutterVeepooSdkPlugin
