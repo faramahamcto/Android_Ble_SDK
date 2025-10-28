@@ -4,6 +4,11 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.NonNull
+import com.inuker.bluetooth.library.search.SearchResult
+import com.inuker.bluetooth.library.search.response.SearchResponse
+import com.inuker.bluetooth.library.Code
+import com.inuker.bluetooth.library.connect.options.BleConnectOptions
+import com.inuker.bluetooth.library.model.BleGattProfile
 import com.veepoo.protocol.VPOperateManager
 import com.veepoo.protocol.listener.base.*
 import com.veepoo.protocol.listener.data.*
@@ -42,6 +47,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var currentMacAddress: String? = null
 
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         context = flutterPluginBinding.applicationContext
@@ -185,18 +191,18 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun startScan(result: Result) {
         try {
-            vpOperateManager.startScanDevice(object : ISearchResponse {
+            vpOperateManager.startScanDevice(object : SearchResponse {
                 override fun onSearchStarted() {
                     // Scan started
                 }
 
-                override fun onDeviceFounded(device: com.inuker.bluetooth.library.search.SearchResult?) {
+                override fun onDeviceFounded(device: SearchResult?) {
                     device?.let {
                         mainHandler.post {
                             scanEventSink?.success(
                                 mapOf(
-                                    "macAddress" to it.address,
-                                    "name" to (it.name ?: "Unknown"),
+                                    "macAddress" to it.getAddress(),
+                                    "name" to (it.getName() ?: "Unknown"),
                                     "rssi" to it.rssi,
                                     "isBonded" to false
                                 )
@@ -238,18 +244,20 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
             return
         }
 
+        currentMacAddress = macAddress
+
         try {
             vpOperateManager.connectDevice(
                 macAddress,
+                "",  // Device name (can be empty)
                 object : IConnectResponse {
-                    override fun connectState(code: Int, profile: Int, status: Int) {
+                    override fun connectState(code: Int, profile: BleGattProfile?, isoadModel: Boolean) {
                         mainHandler.post {
                             connectionEventSink?.success(
                                 mapOf(
                                     "status" to when (code) {
-                                        IConnectResponse.CONNECT_STATE -> 2 // connected
-                                        IConnectResponse.DISCONNECT_STATE -> 0 // disconnected
-                                        else -> 4 // error
+                                        Code.REQUEST_SUCCESS -> 2 // connected
+                                        else -> 0 // disconnected or error
                                     },
                                     "macAddress" to macAddress,
                                     "errorMessage" to null
@@ -257,15 +265,15 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                             )
                         }
 
-                        if (code == IConnectResponse.CONNECT_STATE) {
+                        if (code == Code.REQUEST_SUCCESS) {
                             // Device connected, now confirm password
                             vpOperateManager.confirmDevicePwd(
-                                { aBoolean ->
-                                    // Write response
+                                { writeCode ->
+                                    // Write response callback
                                 },
                                 object : IPwdDataListener {
                                     override fun onPwdDataChange(pwdData: PwdData?) {
-                                        if (pwdData?.pwdState == EPwdStatus.SUCCESS) {
+                                        if (pwdData?.pwdStatus == EPwdStatus.SUCCESS) {
                                             result.success(true)
                                         } else {
                                             result.error("AUTH_ERROR", "Password authentication failed", null)
@@ -277,12 +285,16 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                                 password,
                                 is24Hour
                             )
-                        } else if (code == IConnectResponse.DISCONNECT_STATE) {
+                        } else {
                             result.success(false)
                         }
                     }
                 },
-                null
+                object : INotifyResponse {
+                    override fun notifyState(state: Int) {
+                        // Notify state callback
+                    }
+                }
             )
         } catch (e: Exception) {
             result.error("CONNECT_ERROR", "Failed to connect: ${e.message}", null)
@@ -292,6 +304,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
     private fun disconnect(result: Result) {
         try {
             vpOperateManager.disconnectWatch { aBoolean ->
+                currentMacAddress = null
                 result.success(aBoolean)
             }
         } catch (e: Exception) {
@@ -302,63 +315,88 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
     private fun syncPersonInfo(call: MethodCall, result: Result) {
         try {
             val height = call.argument<Int>("height") ?: 170
-            val weight = call.argument<Double>("weight") ?: 70.0
+            val weight = call.argument<Double>("weight")?.toInt() ?: 70
             val age = call.argument<Int>("age") ?: 25
             val sex = call.argument<Int>("sex") ?: 1
-            val stepLength = call.argument<Int>("stepLength") ?: 70
             val targetSteps = call.argument<Int>("targetSteps") ?: 10000
 
-            val personInfo = PersonInfoData()
-            personInfo.height = height
-            personInfo.weight = weight.toFloat()
-            personInfo.age = age
-            personInfo.sex = sex
-            personInfo.stepLength = stepLength
-            personInfo.targetStepCount = targetSteps
+            val eSex = if (sex == 0) ESex.WOMAN else ESex.MAN
+            val personInfo = PersonInfoData(eSex, height, weight, age, targetSteps)
 
-            vpOperateManager.syncPersonInfo { aBoolean ->
-                result.success(aBoolean)
-            }, personInfo)
+            vpOperateManager.syncPersonInfo(
+                { aBoolean ->
+                    // Write response
+                },
+                object : IPersonInfoDataListener {
+                    override fun OnPersoninfoDataChange(oprateStatus: EOprateStauts?) {
+                        result.success(oprateStatus == EOprateStauts.SUCCESS)
+                    }
+                },
+                personInfo
+            )
         } catch (e: Exception) {
             result.error("SYNC_ERROR", "Failed to sync person info: ${e.message}", null)
         }
     }
 
-    private var deviceFunctions: DeviceFunctionsData? = null
+    private var deviceFunctions: FunctionDeviceSupportData? = null
 
     private val deviceFunctionDataListener = object : IDeviceFuctionDataListener {
         override fun onFunctionSupportDataChange(functionData: FunctionDeviceSupportData?) {
-            // Store device functions
+            deviceFunctions = functionData
         }
     }
 
     private fun getDeviceFunctions(result: Result) {
-        result.success(
-            mapOf(
-                "supportHeartRate" to true,
-                "supportBloodPressure" to true,
-                "supportBloodOxygen" to true,
-                "supportTemperature" to true,
-                "supportSleep" to true,
-                "supportSteps" to true,
-                "supportAlarm" to true,
-                "supportCamera" to true,
-                "supportFindPhone" to true,
-                "supportWeather" to true,
-                "supportECG" to false,
-                "supportHRV" to false,
-                "supportSedentary" to true,
-                "supportDrink" to true,
-                "supportWashHand" to true
+        val functions = deviceFunctions
+        if (functions != null) {
+            result.success(
+                mapOf(
+                    "supportHeartRate" to (functions.HeartDetect == EFunctionStatus.SUPPORT),
+                    "supportBloodPressure" to (functions.BloodDetect == EFunctionStatus.SUPPORT),
+                    "supportBloodOxygen" to (functions.Spo2Detect == EFunctionStatus.SUPPORT),
+                    "supportTemperature" to (functions.TempDetect == EFunctionStatus.SUPPORT),
+                    "supportSleep" to (functions.SleepCheck == EFunctionStatus.SUPPORT),
+                    "supportSteps" to true,
+                    "supportAlarm" to (functions.AlarmOprate == EFunctionStatus.SUPPORT),
+                    "supportCamera" to (functions.CameraOprate == EFunctionStatus.SUPPORT),
+                    "supportFindPhone" to (functions.FindPhone == EFunctionStatus.SUPPORT),
+                    "supportWeather" to (functions.WeatherCheck == EFunctionStatus.SUPPORT),
+                    "supportECG" to (functions.EcgDetect == EFunctionStatus.SUPPORT),
+                    "supportHRV" to (functions.HRVDetect == EFunctionStatus.SUPPORT),
+                    "supportSedentary" to (functions.LongSeat == EFunctionStatus.SUPPORT),
+                    "supportDrink" to (functions.DrinkWater == EFunctionStatus.SUPPORT),
+                    "supportWashHand" to (functions.WashHand == EFunctionStatus.SUPPORT)
+                )
             )
-        )
+        } else {
+            result.success(
+                mapOf(
+                    "supportHeartRate" to true,
+                    "supportBloodPressure" to true,
+                    "supportBloodOxygen" to true,
+                    "supportTemperature" to true,
+                    "supportSleep" to true,
+                    "supportSteps" to true,
+                    "supportAlarm" to true,
+                    "supportCamera" to true,
+                    "supportFindPhone" to true,
+                    "supportWeather" to true,
+                    "supportECG" to false,
+                    "supportHRV" to false,
+                    "supportSedentary" to true,
+                    "supportDrink" to true,
+                    "supportWashHand" to true
+                )
+            )
+        }
     }
 
     // ==================== Heart Rate ====================
 
     private fun startHeartRateDetection(result: Result) {
         try {
-            vpOperateManager.startHeartDetect(
+            vpOperateManager.startDetectHeart(
                 { aBoolean -> },
                 object : IHeartDataListener {
                     override fun onDataChange(heartData: HeartData?) {
@@ -369,7 +407,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                                         "heartRate" to it.data,
                                         "timestamp" to System.currentTimeMillis(),
                                         "status" to "normal",
-                                        "isMeasuring" to (it.heartState == EHeartStatus.HEART_SEARCHING)
+                                        "isMeasuring" to (it.heartStatus == EHeartStatus.HEART_SEARCHING)
                                     )
                                 )
                             }
@@ -385,7 +423,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun stopHeartRateDetection(result: Result) {
         try {
-            vpOperateManager.stopHeartDetect { aBoolean ->
+            vpOperateManager.stopDetectHeart { aBoolean ->
                 result.success(aBoolean)
             }
         } catch (e: Exception) {
@@ -422,7 +460,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun startBloodPressureDetection(result: Result) {
         try {
-            vpOperateManager.startBPDetect(
+            vpOperateManager.startDetectBP(
                 { aBoolean -> },
                 object : IBPDetectDataListener {
                     override fun onDataChange(bpData: BpData?) {
@@ -440,7 +478,8 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                             }
                         }
                     }
-                }
+                },
+                EBPDetectModel.DETECT_MODEL_PUBLIC
             )
             result.success(true)
         } catch (e: Exception) {
@@ -450,7 +489,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun stopBloodPressureDetection(result: Result) {
         try {
-            vpOperateManager.stopBPDetect { aBoolean ->
+            vpOperateManager.stopDetectBP { aBoolean ->
                 result.success(aBoolean)
             }
         } catch (e: Exception) {
@@ -464,7 +503,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
         try {
             vpOperateManager.startDetectSPO2H(
                 { aBoolean -> },
-                object : ISPO2HDataListener {
+                object : ISpo2hDataListener {
                     override fun onSpO2HADataChange(spo2hData: Spo2hData?) {
                         spo2hData?.let {
                             mainHandler.post {
@@ -508,7 +547,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                         originData?.let {
                             result.success(
                                 mapOf(
-                                    "steps" to it.step,
+                                    "steps" to it.allStep,
                                     "distance" to (it.distance.toDouble()),
                                     "calories" to (it.calories.toDouble()),
                                     "timestamp" to System.currentTimeMillis()
@@ -534,6 +573,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                         sleepData?.let {
                             val sleepList = mutableListOf<Map<String, Any>>()
                             // Parse sleep data and add to list
+                            // This would require detailed parsing of SleepData object
                             result.success(sleepList)
                         } ?: result.success(emptyList<Map<String, Any>>())
                     }
@@ -553,20 +593,19 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
             val minute = call.argument<Int>("minute") ?: 0
             val repeatDays = call.argument<Int>("repeatDays") ?: 0
             val isEnabled = call.argument<Boolean>("isEnabled") ?: true
-            val title = call.argument<String>("title")
 
-            val alarmSetting = AlarmSetting()
+            val alarmSetting = AlarmSetting(hour, minute, isEnabled)
             alarmSetting.alarmId = alarmId
-            alarmSetting.hour = hour
-            alarmSetting.minute = minute
             alarmSetting.repeatTimes = repeatDays
-            alarmSetting.isOpen = isEnabled
-            alarmSetting.scene = EAalarmStatus.OPEN
 
             vpOperateManager.settingAlarm(
-                { aBoolean -> result.success(aBoolean) },
-                null,
-                alarmSetting
+                { aBoolean -> },
+                object : IAlarmDataListener {
+                    override fun onAlarmDataChangeListener(alarmData: AlarmData?) {
+                        result.success(alarmData != null)
+                    }
+                },
+                listOf(alarmSetting)
             )
         } catch (e: Exception) {
             result.error("ALARM_ERROR", "Failed to set alarm: ${e.message}", null)
@@ -578,18 +617,20 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
             vpOperateManager.readAlarm(
                 { aBoolean -> },
                 object : IAlarmDataListener {
-                    override fun onAlarmDataChangeListListener(alarmDatas: MutableList<AlarmData>?) {
-                        val alarmList = alarmDatas?.map { alarm ->
-                            mapOf(
-                                "alarmId" to alarm.alarmId,
-                                "hour" to alarm.hour,
-                                "minute" to alarm.minute,
-                                "repeatDays" to alarm.repeatDate,
-                                "isEnabled" to (alarm.alarmStatus == EAalarmStatus.OPEN),
-                                "title" to ""
-                            )
-                        } ?: emptyList()
-                        result.success(alarmList)
+                    override fun onAlarmDataChangeListener(alarmData: AlarmData?) {
+                        alarmData?.let {
+                            val alarmList = it.alarms?.map { alarm ->
+                                mapOf(
+                                    "alarmId" to alarm.alarmId,
+                                    "hour" to alarm.hour,
+                                    "minute" to alarm.minute,
+                                    "repeatDays" to alarm.repeatDate,
+                                    "isEnabled" to (alarm.alarmStatus == EAalarmStatus.OPEN),
+                                    "title" to ""
+                                )
+                            } ?: emptyList()
+                            result.success(alarmList)
+                        } ?: result.success(emptyList<Map<String, Any>>())
                     }
                 }
             )
@@ -606,14 +647,17 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
         }
 
         try {
-            val alarmSetting = AlarmSetting()
+            val alarmSetting = AlarmSetting(0, 0, false)
             alarmSetting.alarmId = alarmId
-            alarmSetting.scene = EAalarmStatus.CLOSE
 
             vpOperateManager.settingAlarm(
-                { aBoolean -> result.success(aBoolean) },
-                null,
-                alarmSetting
+                { aBoolean -> },
+                object : IAlarmDataListener {
+                    override fun onAlarmDataChangeListener(alarmData: AlarmData?) {
+                        result.success(alarmData != null)
+                    }
+                },
+                listOf(alarmSetting)
             )
         } catch (e: Exception) {
             result.error("ALARM_ERROR", "Failed to delete alarm: ${e.message}", null)
@@ -625,11 +669,12 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
     private fun sendNotification(call: MethodCall, result: Result) {
         val type = call.argument<Int>("type") ?: 0
         val title = call.argument<String>("title") ?: ""
-        val content = call.argument<String>("content")
+        val content = call.argument<String>("content") ?: ""
 
         try {
             // Send notification to device
             // Implementation depends on specific notification type
+            // Would need to use appropriate VPOperateManager notification method
             result.success(true)
         } catch (e: Exception) {
             result.error("NOTIF_ERROR", "Failed to send notification: ${e.message}", null)
@@ -713,9 +758,14 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun openCameraControl(result: Result) {
         try {
-            vpOperateManager.openCamera { aBoolean ->
-                result.success(aBoolean)
-            }
+            vpOperateManager.startCamera(
+                { aBoolean -> },
+                object : ICameraDataListener {
+                    override fun OnCameraDataChange(cameraStatus: ECameraStatus?) {
+                        result.success(cameraStatus == ECameraStatus.CAMERA_OPEN)
+                    }
+                }
+            )
         } catch (e: Exception) {
             result.error("CAMERA_ERROR", "Failed to open camera control: ${e.message}", null)
         }
@@ -723,9 +773,14 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun closeCameraControl(result: Result) {
         try {
-            vpOperateManager.closeCamera { aBoolean ->
-                result.success(aBoolean)
-            }
+            vpOperateManager.stopCamera(
+                { aBoolean -> },
+                object : ICameraDataListener {
+                    override fun OnCameraDataChange(cameraStatus: ECameraStatus?) {
+                        result.success(cameraStatus == ECameraStatus.CAMERA_CLOSE)
+                    }
+                }
+            )
         } catch (e: Exception) {
             result.error("CAMERA_ERROR", "Failed to close camera control: ${e.message}", null)
         }
