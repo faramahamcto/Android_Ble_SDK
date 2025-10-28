@@ -69,46 +69,13 @@ dependencies:
       path: flutter_veepoo_sdk
 ```
 
-### 2. Download VeepooSDK Libraries
+### 2. Run flutter pub get
 
-Download the required AAR files from the official VeepooSDK repository:
-
-**Required files:**
-- [vpprotocol-2.3.28.15.aar](https://github.com/HBandSDK/Android_Ble_SDK/tree/master/android_sdk_source/jar_core)
-- [vpbluetooth-1.18.aar](https://github.com/HBandSDK/Android_Ble_SDK/tree/master/android_sdk_source/jar_base)
-
-Place them in your project:
-```
-your_flutter_project/
-├── android/
-│   └── app/
-│       └── libs/
-│           ├── vpprotocol-2.3.28.15.aar
-│           └── vpbluetooth-1.18.aar
+```bash
+flutter pub get
 ```
 
-### 3. Update android/app/build.gradle
-
-Add the following to your app's build.gradle:
-
-```gradle
-android {
-    // ...
-
-    repositories {
-        flatDir {
-            dirs 'libs'
-        }
-    }
-}
-
-dependencies {
-    // VeepooSDK dependencies
-    implementation(name: 'vpprotocol-2.3.28.15', ext: 'aar')
-    implementation(name: 'vpbluetooth-1.18', ext: 'aar')
-    implementation 'com.google.code.gson:gson:2.8.9'
-}
-```
+**That's it!** The plugin includes all necessary VeepooSDK libraries (vpprotocol and vpbluetooth AAR files).
 
 ## Usage
 

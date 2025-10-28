@@ -69,46 +69,13 @@ dependencies:
       path: flutter_veepoo_sdk
 ```
 
-### 2. دانلود کتابخانه‌های VeepooSDK
+### 2. اجرای دستور flutter pub get
 
-فایل‌های AAR مورد نیاز را از مخزن رسمی VeepooSDK دانلود کنید:
-
-**فایل‌های ضروری:**
-- [vpprotocol-2.3.28.15.aar](https://github.com/HBandSDK/Android_Ble_SDK/tree/master/android_sdk_source/jar_core)
-- [vpbluetooth-1.18.aar](https://github.com/HBandSDK/Android_Ble_SDK/tree/master/android_sdk_source/jar_base)
-
-آنها را در پروژه خود قرار دهید:
-```
-your_flutter_project/
-├── android/
-│   └── app/
-│       └── libs/
-│           ├── vpprotocol-2.3.28.15.aar
-│           └── vpbluetooth-1.18.aar
+```bash
+flutter pub get
 ```
 
-### 3. به‌روزرسانی android/app/build.gradle
-
-موارد زیر را به build.gradle برنامه خود اضافه کنید:
-
-```gradle
-android {
-    // ...
-
-    repositories {
-        flatDir {
-            dirs 'libs'
-        }
-    }
-}
-
-dependencies {
-    // وابستگی‌های VeepooSDK
-    implementation(name: 'vpprotocol-2.3.28.15', ext: 'aar')
-    implementation(name: 'vpbluetooth-1.18', ext: 'aar')
-    implementation 'com.google.code.gson:gson:2.8.9'
-}
-```
+**همین!** پلاگین شامل تمام کتابخانه‌های لازم VeepooSDK (فایل‌های AAR برای vpprotocol و vpbluetooth) است.
 
 ## استفاده
 

@@ -18,6 +18,9 @@ rootProject.allprojects {
     repositories {
         google()
         mavenCentral()
+        flatDir {
+            dirs project(':flutter_veepoo_sdk').file('libs')
+        }
     }
 }
 
@@ -51,13 +54,8 @@ android {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
-    // VeepooSDK dependencies - provided by host app
-    // Host app must include these AAR files in their project
-    // See README.md for installation instructions
-    compileOnly 'com.google.code.gson:gson:2.8.9'
-
-    // Note: vpprotocol and vpbluetooth AAR files must be added by the host app
-    // The host app should add these in their android/app/build.gradle:
-    // implementation(name: 'vpprotocol-2.3.28.15', ext: 'aar')
-    // implementation(name: 'vpbluetooth-1.18', ext: 'aar')
+    // VeepooSDK dependencies - included in plugin
+    implementation(name: 'vpprotocol-2.3.28.15', ext: 'aar')
+    implementation(name: 'vpbluetooth-1.18', ext: 'aar')
+    implementation 'com.google.code.gson:gson:2.8.9'
 }

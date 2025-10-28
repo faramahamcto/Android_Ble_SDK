@@ -21,77 +21,9 @@ dependencies:
 flutter pub get
 ```
 
-## گام 2: دانلود کتابخانه‌های VeepooSDK
+> **نکته مهم:** پلاگین شامل تمام کتابخانه‌های لازم VeepooSDK است. نیازی به دانلود یا کپی دستی فایل‌های AAR نیست!
 
-### فایل‌های مورد نیاز:
-
-دو فایل AAR زیر را از مخزن رسمی VeepooSDK دانلود کنید:
-
-1. **vpprotocol-2.3.28.15.aar**
-   - لینک: https://github.com/HBandSDK/Android_Ble_SDK/tree/master/android_sdk_source/jar_core
-   - این فایل را از پوشه `com2.3.28.15` دانلود کنید
-
-2. **vpbluetooth-1.18.aar**
-   - لینک: https://github.com/HBandSDK/Android_Ble_SDK/tree/master/android_sdk_source/jar_base
-   - این فایل را از پوشه مربوطه دانلود کنید
-
-### محل قرارگیری فایل‌ها:
-
-فایل‌های دانلود شده را در پوشه زیر قرار دهید:
-
-```
-your_flutter_project/
-├── android/
-│   └── app/
-│       └── libs/              ⬅️ این پوشه را ایجاد کنید
-│           ├── vpprotocol-2.3.28.15.aar
-│           └── vpbluetooth-1.18.aar
-```
-
-اگر پوشه `libs` وجود ندارد، آن را ایجاد کنید:
-```bash
-mkdir -p android/app/libs
-```
-
-## گام 3: پیکربندی Gradle
-
-فایل `android/app/build.gradle` را باز کنید و تغییرات زیر را اعمال کنید:
-
-### الف) اضافه کردن repository:
-
-در بخش `android`، repositories را اضافه کنید:
-
-```gradle
-android {
-    compileSdk 34
-
-    // ... تنظیمات دیگر
-
-    // این بخش را اضافه کنید
-    repositories {
-        flatDir {
-            dirs 'libs'
-        }
-    }
-}
-```
-
-### ب) اضافه کردن dependencies:
-
-در بخش `dependencies`:
-
-```gradle
-dependencies {
-    // ... وابستگی‌های دیگر Flutter
-
-    // کتابخانه‌های VeepooSDK
-    implementation(name: 'vpprotocol-2.3.28.15', ext: 'aar')
-    implementation(name: 'vpbluetooth-1.18', ext: 'aar')
-    implementation 'com.google.code.gson:gson:2.8.9'
-}
-```
-
-## گام 4: اضافه کردن مجوزها
+## گام 2: اضافه کردن مجوزها
 
 فایل `android/app/src/main/AndroidManifest.xml` را باز کنید و مجوزهای زیر را اضافه کنید:
 
@@ -115,7 +47,7 @@ dependencies {
 </manifest>
 ```
 
-## گام 5: تست نصب
+## گام 3: تست نصب
 
 یک تست ساده برای اطمینان از نصب صحیح:
 
@@ -168,13 +100,17 @@ flutter run
 
 ## عیب‌یابی
 
-### خطای "Could not find vpprotocol-2.3.28.15.aar"
+### خطای "Unresolved reference VPOperateManager"
 
 **راه حل:**
-1. مطمئن شوید فایل‌های AAR در `android/app/libs/` قرار دارند
-2. نام فایل‌ها را دقیق بررسی کنید
-3. `flutter clean` را اجرا کنید
-4. دوباره `flutter pub get` بزنید
+1. `flutter clean` را اجرا کنید
+2. دوباره `flutter pub get` بزنید
+3. اگر مشکل حل نشد، cache را پاک کنید:
+```bash
+flutter clean
+rm -rf ~/.pub-cache/git/
+flutter pub get
+```
 
 ### خطای مجوز بلوتوث
 
