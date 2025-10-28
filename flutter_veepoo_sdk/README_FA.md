@@ -4,9 +4,10 @@
 
 ## 📚 مستندات
 
-- **[مرجع سریع](QUICK_REFERENCE.md)** - جستجوی سریع نوع پارامترها (فارسی)
-- **[راهنمای کامل نوع داده‌ها](DATA_TYPES_GUIDE.md)** - راهنمای جامع همه نوع داده‌ها (فارسی و انگلیسی)
-- **[برنامه مثال](example/)** - نمونه کامل با رابط کاربری
+- **[مرجع سریع](https://github.com/faramahamcto/Android_Ble_SDK/blob/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/QUICK_REFERENCE.md)** - جستجوی سریع نوع پارامترها (فارسی)
+- **[راهنمای کامل نوع داده‌ها](https://github.com/faramahamcto/Android_Ble_SDK/blob/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/DATA_TYPES_GUIDE.md)** - راهنمای جامع همه نوع داده‌ها (فارسی و انگلیسی)
+- **[برنامه مثال](https://github.com/faramahamcto/Android_Ble_SDK/tree/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/example)** - نمونه کامل با رابط کاربری
+- **[مستندات اصلی VeepooSDK](https://github.com/HBandSDK/Android_Ble_SDK/wiki)** - مستندات رسمی Android SDK
 
 ## قابلیت‌ها
 
@@ -56,39 +57,52 @@
 
 ## نصب
 
-### 1. اضافه کردن کتابخانه‌های VeepooSDK
-
-فایل‌های AAR را به پروژه خود کپی کنید:
-
-```
-your_project/
-├── android/
-│   └── libs/
-│       ├── vpprotocol-2.3.28.15.aar
-│       └── vpbluetooth-1.18.aar
-```
-
-### 2. اضافه کردن به pubspec.yaml
+### 1. اضافه کردن به pubspec.yaml
 
 ```yaml
 dependencies:
   flutter_veepoo_sdk:
-    path: ../flutter_veepoo_sdk
+    git:
+      url: https://github.com/faramahamcto/Android_Ble_SDK.git
+      ref: claude/session-011CUZJBhvwUBYxEk1G6wYkc
+      path: flutter_veepoo_sdk
+```
+
+### 2. دانلود کتابخانه‌های VeepooSDK
+
+فایل‌های AAR مورد نیاز را از مخزن رسمی VeepooSDK دانلود کنید:
+
+**فایل‌های ضروری:**
+- [vpprotocol-2.3.28.15.aar](https://github.com/HBandSDK/Android_Ble_SDK/tree/master/android_sdk_source/jar_core)
+- [vpbluetooth-1.18.aar](https://github.com/HBandSDK/Android_Ble_SDK/tree/master/android_sdk_source/jar_base)
+
+آنها را در پروژه خود قرار دهید:
+```
+your_flutter_project/
+├── android/
+│   └── app/
+│       └── libs/
+│           ├── vpprotocol-2.3.28.15.aar
+│           └── vpbluetooth-1.18.aar
 ```
 
 ### 3. به‌روزرسانی android/app/build.gradle
 
+موارد زیر را به build.gradle برنامه خود اضافه کنید:
+
 ```gradle
 android {
-    compileSdk 34
+    // ...
 
-    defaultConfig {
-        minSdk 21
-        targetSdk 34
+    repositories {
+        flatDir {
+            dirs 'libs'
+        }
     }
 }
 
 dependencies {
+    // وابستگی‌های VeepooSDK
     implementation(name: 'vpprotocol-2.3.28.15', ext: 'aar')
     implementation(name: 'vpbluetooth-1.18', ext: 'aar')
     implementation 'com.google.code.gson:gson:2.8.9'

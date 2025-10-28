@@ -4,9 +4,10 @@ A Flutter plugin for integrating VeepooSDK - a Bluetooth Low Energy (BLE) toolki
 
 ## 📚 Documentation
 
-- **[Quick Reference](QUICK_REFERENCE.md)** - Fast lookup for parameter types
-- **[Data Types Guide](DATA_TYPES_GUIDE.md)** - Complete guide for all data types (English & Persian)
-- **[Example App](example/)** - Full working example with UI
+- **[Quick Reference](https://github.com/faramahamcto/Android_Ble_SDK/blob/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/QUICK_REFERENCE.md)** - Fast lookup for parameter types
+- **[Data Types Guide](https://github.com/faramahamcto/Android_Ble_SDK/blob/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/DATA_TYPES_GUIDE.md)** - Complete guide for all data types (English & Persian)
+- **[Example App](https://github.com/faramahamcto/Android_Ble_SDK/tree/claude/session-011CUZJBhvwUBYxEk1G6wYkc/flutter_veepoo_sdk/example)** - Full working example with UI
+- **[VeepooSDK Original Documentation](https://github.com/HBandSDK/Android_Ble_SDK/wiki)** - Official Android SDK documentation
 
 ## Features
 
@@ -56,39 +57,52 @@ Add these permissions to your `android/app/src/main/AndroidManifest.xml`:
 
 ## Installation
 
-### 1. Add VeepooSDK Libraries
-
-Copy the VeepooSDK AAR files to your project:
-
-```
-your_project/
-├── android/
-│   └── libs/
-│       ├── vpprotocol-2.3.28.15.aar
-│       └── vpbluetooth-1.18.aar
-```
-
-### 2. Add to pubspec.yaml
+### 1. Add to pubspec.yaml
 
 ```yaml
 dependencies:
   flutter_veepoo_sdk:
-    path: ../flutter_veepoo_sdk  # Or use git/pub.dev when published
+    git:
+      url: https://github.com/faramahamcto/Android_Ble_SDK.git
+      ref: claude/session-011CUZJBhvwUBYxEk1G6wYkc
+      path: flutter_veepoo_sdk
+```
+
+### 2. Download VeepooSDK Libraries
+
+Download the required AAR files from the official VeepooSDK repository:
+
+**Required files:**
+- [vpprotocol-2.3.28.15.aar](https://github.com/HBandSDK/Android_Ble_SDK/tree/master/android_sdk_source/jar_core)
+- [vpbluetooth-1.18.aar](https://github.com/HBandSDK/Android_Ble_SDK/tree/master/android_sdk_source/jar_base)
+
+Place them in your project:
+```
+your_flutter_project/
+├── android/
+│   └── app/
+│       └── libs/
+│           ├── vpprotocol-2.3.28.15.aar
+│           └── vpbluetooth-1.18.aar
 ```
 
 ### 3. Update android/app/build.gradle
 
+Add the following to your app's build.gradle:
+
 ```gradle
 android {
-    compileSdk 34
+    // ...
 
-    defaultConfig {
-        minSdk 21
-        targetSdk 34
+    repositories {
+        flatDir {
+            dirs 'libs'
+        }
     }
 }
 
 dependencies {
+    // VeepooSDK dependencies
     implementation(name: 'vpprotocol-2.3.28.15', ext: 'aar')
     implementation(name: 'vpbluetooth-1.18', ext: 'aar')
     implementation 'com.google.code.gson:gson:2.8.9'
