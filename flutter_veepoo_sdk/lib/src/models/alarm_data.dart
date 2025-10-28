@@ -1,21 +1,96 @@
 /// Alarm configuration
+///
+/// Example:
+/// ```dart
+/// // Simple one-time alarm at 7:30 AM
+/// final alarm = AlarmData(
+///   alarmId: 1,         // int - Unique alarm ID (1-10)
+///   hour: 7,            // int - Hour in 24h format (0-23)
+///   minute: 30,         // int - Minute (0-59)
+/// );
+///
+/// // Repeating alarm for weekdays (Monday to Friday)
+/// final weekdayAlarm = AlarmData(
+///   alarmId: 2,
+///   hour: 6,
+///   minute: 0,
+///   repeatDays: 0x1F,   // int - Bit mask: Mon+Tue+Wed+Thu+Fri
+///   isEnabled: true,    // bool - Alarm is active
+///   title: 'Work',      // String - Optional alarm name
+/// );
+/// ```
 class AlarmData {
-  /// Alarm ID
+  /// Alarm unique identifier
+  ///
+  /// **Type**: `int` (Integer number)
+  ///
+  /// **Example**: `1` for alarm ID 1
+  ///
+  /// **Range**: Usually 1-10 (depends on device)
   final int alarmId;
 
-  /// Hour (0-23)
+  /// Hour of the alarm (24-hour format)
+  ///
+  /// **Type**: `int` (Integer number)
+  ///
+  /// **Example**:
+  /// - `7` = 7:00 AM
+  /// - `14` = 2:00 PM
+  /// - `23` = 11:00 PM
+  ///
+  /// **Range**: `0-23` (0 = midnight, 23 = 11 PM)
   final int hour;
 
-  /// Minute (0-59)
+  /// Minute of the alarm
+  ///
+  /// **Type**: `int` (Integer number)
+  ///
+  /// **Example**: `30` for 30 minutes past the hour
+  ///
+  /// **Range**: `0-59`
   final int minute;
 
-  /// Repeat days (bit mask: Monday=1, Tuesday=2, ..., Sunday=64)
+  /// Which days the alarm repeats (bit mask)
+  ///
+  /// **Type**: `int` (Integer number as bit mask)
+  ///
+  /// **Bit Values**:
+  /// - Bit 0 (1): Monday
+  /// - Bit 1 (2): Tuesday
+  /// - Bit 2 (4): Wednesday
+  /// - Bit 3 (8): Thursday
+  /// - Bit 4 (16): Friday
+  /// - Bit 5 (32): Saturday
+  /// - Bit 6 (64): Sunday
+  ///
+  /// **Examples**:
+  /// - `0` = No repeat (one-time alarm)
+  /// - `1` = Monday only
+  /// - `0x1F` or `31` = Weekdays (Mon-Fri)
+  /// - `0x60` or `96` = Weekend (Sat-Sun)
+  /// - `0x7F` or `127` = Every day
+  ///
+  /// **Default**: `0` (no repeat)
   final int repeatDays;
 
-  /// Alarm is enabled
+  /// Whether the alarm is enabled
+  ///
+  /// **Type**: `bool` (Boolean - true/false)
+  ///
+  /// **Values**:
+  /// - `true` = Alarm is active
+  /// - `false` = Alarm is disabled
+  ///
+  /// **Default**: `true`
   final bool isEnabled;
 
-  /// Alarm title/name
+  /// Optional alarm name/title
+  ///
+  /// **Type**: `String?` (Text string, nullable)
+  ///
+  /// **Example**: `"Wake up"`, `"Medicine"`, `"Workout"`
+  ///
+  /// **Default**: `null` (no title)
   final String? title;
 
   AlarmData({

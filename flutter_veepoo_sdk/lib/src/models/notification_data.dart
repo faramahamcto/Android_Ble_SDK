@@ -1,15 +1,58 @@
-/// Notification data
+/// Notification data for sending to or receiving from device
+///
+/// Example:
+/// ```dart
+/// NotificationData(
+///   type: NotificationType.call,      // enum - Type of notification
+///   title: 'John Doe',                 // String - Main text
+///   content: 'Incoming call...',       // String? - Optional details
+///   timestamp: DateTime.now(),         // DateTime - When it occurred
+/// );
+/// ```
 class NotificationData {
-  /// Notification type
+  /// Type of notification
+  ///
+  /// **Type**: `NotificationType` (Enum)
+  ///
+  /// **Values**:
+  /// - `NotificationType.call` - Phone call
+  /// - `NotificationType.sms` - Text message
+  /// - `NotificationType.wechat` - WeChat message
+  /// - `NotificationType.qq` - QQ message
+  /// - `NotificationType.whatsapp` - WhatsApp
+  /// - `NotificationType.facebook` - Facebook
+  /// - `NotificationType.twitter` - Twitter/X
+  /// - `NotificationType.instagram` - Instagram
+  /// - `NotificationType.linkedin` - LinkedIn
+  /// - `NotificationType.telegram` - Telegram
+  /// - `NotificationType.line` - LINE
+  /// - `NotificationType.viber` - Viber
+  /// - `NotificationType.other` - Other apps
+  ///
+  /// **Example**: `type: NotificationType.call`
   final NotificationType type;
 
-  /// Notification title
+  /// Main notification text (caller name, sender, etc.)
+  ///
+  /// **Type**: `String` (Text string)
+  ///
+  /// **Example**: `"John Doe"`, `"Mom"`, `"Boss"`
   final String title;
 
-  /// Notification content
+  /// Optional notification content/body
+  ///
+  /// **Type**: `String?` (Text string, nullable)
+  ///
+  /// **Example**: `"Incoming call..."`, `"Hello, how are you?"`
+  ///
+  /// **Default**: `null`
   final String? content;
 
-  /// Timestamp
+  /// When the notification occurred
+  ///
+  /// **Type**: `DateTime` (Date and time object)
+  ///
+  /// **Example**: `DateTime.now()`, `DateTime(2024, 1, 15, 14, 30)`
   final DateTime timestamp;
 
   NotificationData({

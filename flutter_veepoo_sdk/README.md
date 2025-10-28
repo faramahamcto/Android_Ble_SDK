@@ -2,6 +2,12 @@
 
 A Flutter plugin for integrating VeepooSDK - a Bluetooth Low Energy (BLE) toolkit for wearable devices such as smartwatches and fitness bands.
 
+## 📚 Documentation
+
+- **[Quick Reference](QUICK_REFERENCE.md)** - Fast lookup for parameter types
+- **[Data Types Guide](DATA_TYPES_GUIDE.md)** - Complete guide for all data types (English & Persian)
+- **[Example App](example/)** - Full working example with UI
+
 ## Features
 
 This plugin provides comprehensive support for:
