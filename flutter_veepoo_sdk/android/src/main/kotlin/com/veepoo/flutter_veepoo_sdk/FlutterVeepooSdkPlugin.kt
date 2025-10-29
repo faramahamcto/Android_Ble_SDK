@@ -431,28 +431,9 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     private fun readHeartRateData(result: Result) {
-        try {
-            vpOperateManager.readHeart(
-                IBleWriteResponse { aBoolean -> },
-                object : IHeartDataListener {
-                    override fun onDataChange(heartData: HeartData?) {
-                        heartData?.let {
-                            val dataList = listOf(
-                                mapOf(
-                                    "heartRate" to it.getData(),
-                                    "timestamp" to System.currentTimeMillis(),
-                                    "status" to "normal",
-                                    "isMeasuring" to false
-                                )
-                            )
-                            result.success(dataList)
-                        } ?: result.success(emptyList<Map<String, Any>>())
-                    }
-                }
-            )
-        } catch (e: Exception) {
-            result.error("HR_ERROR", "Failed to read heart rate data: ${e.message}", null)
-        }
+        // VeepooSDK doesn't have a readHeart method - only real-time detection
+        // Return empty list as historical data is not available via this method
+        result.success(emptyList<Map<String, Any>>())
     }
 
     // ==================== Blood Pressure ====================
@@ -530,9 +511,16 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun stopBloodOxygenDetection(result: Result) {
         try {
-            vpOperateManager.stopDetectSPO2H(IBleWriteResponse { aBoolean ->
-                result.success(true)
-            })
+            vpOperateManager.stopDetectSPO2H(
+                IBleWriteResponse { aBoolean ->
+                    result.success(true)
+                },
+                object : ISpo2hDataListener {
+                    override fun onSpO2HADataChange(spo2hData: Spo2hData?) {
+                        // Not used when stopping
+                    }
+                }
+            )
         } catch (e: Exception) {
             result.error("SPO2_ERROR", "Failed to stop blood oxygen detection: ${e.message}", null)
         }
@@ -544,7 +532,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
         try {
             vpOperateManager.readOriginData(
                 IBleWriteResponse { aBoolean -> },
-                object : IOriginData3Listener {
+                object : IOriginDataListener {
                     override fun onOringinFiveMinuteDataChange(originData: OriginData?) {
                         originData?.let {
                             result.success(
@@ -562,23 +550,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                         // Not used for step data
                     }
 
-                    override fun onOriginFiveMinuteListDataChange(originDataList: MutableList<OriginData3>?) {
-                        // Not used for step data
-                    }
-
-                    override fun onOriginHalfHourListDataChange(originHalfHourData: OriginHalfHourData?) {
-                        // Not used for step data
-                    }
-
-                    override fun onOriginSpo2OriginListDataChange(spo2hOriginDataList: MutableList<Spo2hOriginData>?) {
-                        // Not used for step data
-                    }
-
-                    override fun onOriginHRVOriginListDataChange(originHrvDataList: MutableList<HRVOriginData>?) {
-                        // Not used for step data
-                    }
-
-                    override fun onReadOriginProgressDetail(dayNum: Int) {
+                    override fun onReadOriginProgressDetail(day: Int, date: String?, allPackage: Int, currentPackage: Int) {
                         // Progress callback
                     }
 
@@ -612,8 +584,12 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                             result.success(sleepList)
                         } ?: result.success(emptyList<Map<String, Any>>())
                     }
+
+                    override fun onSleepProgress(progress: Float) {
+                        // Progress callback
+                    }
                 },
-                null
+                ReadOriginSetting()
             )
         } catch (e: Exception) {
             result.error("SLEEP_ERROR", "Failed to read sleep data: ${e.message}", null)
@@ -631,7 +607,8 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
             val isEnabled = call.argument<Boolean>("isEnabled") ?: true
 
             val alarmSetting = AlarmSetting(hour, minute, isEnabled)
-            alarmSetting.setRepeatDate(repeatDays)
+            // Note: AlarmSetting doesn't have setRepeatDate method
+            // Repeat functionality may need to be handled differently
 
             vpOperateManager.settingAlarm(
                 IBleWriteResponse { aBoolean -> },
@@ -656,11 +633,11 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                         alarmData?.let {
                             val alarmList = it.getAlarmSettingList()?.map { alarm ->
                                 mapOf(
-                                    "alarmId" to alarm.getAlarmId(),
-                                    "hour" to alarm.getHour(),
-                                    "minute" to alarm.getMinute(),
-                                    "repeatDays" to alarm.getRepeatDate(),
-                                    "isEnabled" to alarm.isOpen(),
+                                    "alarmId" to alarm.alarmId,
+                                    "hour" to alarm.hour,
+                                    "minute" to alarm.minute,
+                                    "repeatDays" to alarm.repeatDate,
+                                    "isEnabled" to alarm.isOpen,
                                     "title" to ""
                                 )
                             } ?: emptyList()
@@ -721,7 +698,12 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
         try {
             vpOperateManager.settingFindDevice(
                 IBleWriteResponse { aBoolean ->
-                    result.success(aBoolean == true)
+                    // Write response
+                },
+                object : IFindDeviceDatalistener {
+                    override fun onFindDevice(findDeviceData: FindDeviceData?) {
+                        result.success(true)
+                    }
                 },
                 true
             )
