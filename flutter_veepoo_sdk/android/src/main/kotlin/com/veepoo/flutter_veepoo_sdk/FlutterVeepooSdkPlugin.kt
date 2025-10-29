@@ -181,21 +181,35 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun initialize(result: Result) {
         try {
+            android.util.Log.d("VeepooSDK", "Initializing VeepooSDK...")
             vpOperateManager.init(context)
+            android.util.Log.d("VeepooSDK", "VeepooSDK initialized successfully")
             result.success(true)
         } catch (e: Exception) {
+            android.util.Log.e("VeepooSDK", "Initialization error: ${e.message}", e)
             result.error("INIT_ERROR", "Failed to initialize SDK: ${e.message}", null)
         }
     }
 
     private fun startScan(result: Result) {
         try {
+            android.util.Log.d("VeepooSDK", "Starting BLE scan...")
+
             vpOperateManager.startScanDevice(object : SearchResponse {
                 override fun onSearchStarted() {
-                    // Scan started
+                    android.util.Log.d("VeepooSDK", "Scan started successfully")
+                    mainHandler.post {
+                        // Notify Flutter that scan started
+                        scanEventSink?.success(
+                            mapOf(
+                                "status" to "started"
+                            )
+                        )
+                    }
                 }
 
                 override fun onDeviceFounded(device: SearchResult?) {
+                    android.util.Log.d("VeepooSDK", "Device found: ${device?.getName()} - ${device?.getAddress()}")
                     device?.let {
                         mainHandler.post {
                             scanEventSink?.success(
@@ -211,15 +225,30 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                 }
 
                 override fun onSearchStopped() {
-                    // Scan stopped
+                    android.util.Log.d("VeepooSDK", "Scan stopped")
+                    mainHandler.post {
+                        scanEventSink?.success(
+                            mapOf(
+                                "status" to "stopped"
+                            )
+                        )
+                    }
                 }
 
                 override fun onSearchCanceled() {
-                    // Scan canceled
+                    android.util.Log.d("VeepooSDK", "Scan canceled")
+                    mainHandler.post {
+                        scanEventSink?.success(
+                            mapOf(
+                                "status" to "canceled"
+                            )
+                        )
+                    }
                 }
             })
             result.success(true)
         } catch (e: Exception) {
+            android.util.Log.e("VeepooSDK", "Scan error: ${e.message}", e)
             result.error("SCAN_ERROR", "Failed to start scan: ${e.message}", null)
         }
     }
