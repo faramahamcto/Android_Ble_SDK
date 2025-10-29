@@ -573,6 +573,9 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun readSleepData(result: Result) {
         try {
+            // Read sleep data for the last 3 days
+            val watchDataDay = 3
+
             vpOperateManager.readSleepData(
                 IBleWriteResponse { aBoolean -> },
                 object : ISleepDataListener {
@@ -596,7 +599,8 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                     override fun onReadSleepComplete() {
                         // Complete callback
                     }
-                }
+                },
+                watchDataDay
             )
         } catch (e: Exception) {
             result.error("SLEEP_ERROR", "Failed to read sleep data: ${e.message}", null)
