@@ -42,9 +42,21 @@ class VeepooSDK {
   /// Start scanning for BLE devices
   /// Returns a stream of discovered devices
   Stream<VeepooDevice> startScan() {
-    _scanStream ??= _scanEventChannel.receiveBroadcastStream().map((event) {
-      return VeepooDevice.fromMap(Map<String, dynamic>.from(event));
+    // Call the native method to start scanning
+    _methodChannel.invokeMethod('startScan').catchError((error) {
+      print('Error starting scan: $error');
     });
+
+    _scanStream ??= _scanEventChannel.receiveBroadcastStream().map((event) {
+      final eventMap = Map<String, dynamic>.from(event);
+      // Filter out status events (started, stopped, canceled)
+      if (eventMap.containsKey('status')) {
+        // Skip status events, only process device events
+        return null;
+      }
+      return VeepooDevice.fromMap(eventMap);
+    }).where((device) => device != null).cast<VeepooDevice>();
+
     return _scanStream!;
   }
 
