@@ -48,6 +48,14 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var currentMacAddress: String? = null
 
+    // BLE Scanning improvements
+    private val discoveredDevices = mutableMapOf<String, Map<String, Any?>>()
+    private var lastScanTime = 0L
+    private var scanTimeoutRunnable: Runnable? = null
+    private val SCAN_TIMEOUT_MS = 60000L // 60 seconds
+    private val SCAN_THROTTLE_MS = 60000L // 1 minute between scans
+    private val RSSI_UPDATE_THRESHOLD = 10 // Only update if RSSI changes by >10 dBm
+
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         context = flutterPluginBinding.applicationContext
 
@@ -195,11 +203,38 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
         try {
             android.util.Log.d("VeepooSDK", "Starting BLE scan...")
 
+            // 1. Check Bluetooth state
+            if (!isBluetoothEnabled()) {
+                android.util.Log.w("VeepooSDK", "Bluetooth is disabled")
+                result.error("BLUETOOTH_DISABLED", "Bluetooth is disabled. Please enable Bluetooth.", null)
+                return
+            }
+
+            // 2. Check scan throttling
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastScanTime < SCAN_THROTTLE_MS) {
+                val remainingTime = (SCAN_THROTTLE_MS - (currentTime - lastScanTime)) / 1000
+                android.util.Log.w("VeepooSDK", "Scanning too frequently, please wait ${remainingTime}s")
+                result.error("SCAN_THROTTLED", "Please wait ${remainingTime} seconds before scanning again", null)
+                return
+            }
+
+            // 3. Clear previous scan data
+            discoveredDevices.clear()
+            lastScanTime = currentTime
+
+            // 4. Set up automatic timeout
+            scanTimeoutRunnable = Runnable {
+                android.util.Log.d("VeepooSDK", "Scan timeout reached, stopping scan")
+                stopScanInternal()
+            }
+            mainHandler.postDelayed(scanTimeoutRunnable!!, SCAN_TIMEOUT_MS)
+
+            // 5. Start scanning
             vpOperateManager.startScanDevice(object : SearchResponse {
                 override fun onSearchStarted() {
                     android.util.Log.d("VeepooSDK", "Scan started successfully")
                     mainHandler.post {
-                        // Notify Flutter that scan started
                         scanEventSink?.success(
                             mapOf(
                                 "status" to "started"
@@ -209,23 +244,46 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                 }
 
                 override fun onDeviceFounded(device: SearchResult?) {
-                    android.util.Log.d("VeepooSDK", "Device found: ${device?.getName()} - ${device?.getAddress()}")
-                    device?.let {
-                        mainHandler.post {
-                            scanEventSink?.success(
-                                mapOf(
-                                    "macAddress" to it.getAddress(),
-                                    "name" to (it.getName() ?: "Unknown"),
-                                    "rssi" to it.rssi,
-                                    "isBonded" to false
-                                )
-                            )
+                    device?.let { searchResult ->
+                        val address = searchResult.getAddress()
+                        val name = searchResult.getName() ?: "Unknown"
+                        val rssi = searchResult.rssi
+
+                        android.util.Log.d("VeepooSDK", "Device found: $name - $address (RSSI: $rssi)")
+
+                        val deviceMap = mapOf(
+                            "macAddress" to address,
+                            "name" to name,
+                            "rssi" to rssi,
+                            "isBonded" to false
+                        )
+
+                        // Device caching with RSSI filtering
+                        val existingDevice = discoveredDevices[address]
+                        if (existingDevice == null) {
+                            // New device - add it
+                            discoveredDevices[address] = deviceMap
+                            mainHandler.post {
+                                scanEventSink?.success(deviceMap)
+                            }
+                            android.util.Log.d("VeepooSDK", "New device added: $name")
+                        } else {
+                            // Existing device - only update if RSSI changed significantly
+                            val oldRssi = existingDevice["rssi"] as? Int ?: 0
+                            if (kotlin.math.abs(oldRssi - rssi) > RSSI_UPDATE_THRESHOLD) {
+                                discoveredDevices[address] = deviceMap
+                                mainHandler.post {
+                                    scanEventSink?.success(deviceMap)
+                                }
+                                android.util.Log.d("VeepooSDK", "Device RSSI updated: $name (old: $oldRssi, new: $rssi)")
+                            }
                         }
                     }
                 }
 
                 override fun onSearchStopped() {
                     android.util.Log.d("VeepooSDK", "Scan stopped")
+                    cleanupScan()
                     mainHandler.post {
                         scanEventSink?.success(
                             mapOf(
@@ -237,6 +295,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
                 override fun onSearchCanceled() {
                     android.util.Log.d("VeepooSDK", "Scan canceled")
+                    cleanupScan()
                     mainHandler.post {
                         scanEventSink?.success(
                             mapOf(
@@ -249,15 +308,44 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
             result.success(true)
         } catch (e: Exception) {
             android.util.Log.e("VeepooSDK", "Scan error: ${e.message}", e)
+            cleanupScan()
             result.error("SCAN_ERROR", "Failed to start scan: ${e.message}", null)
+        }
+    }
+
+    private fun stopScanInternal() {
+        try {
+            vpOperateManager.stopScanDevice()
+        } catch (e: Exception) {
+            android.util.Log.e("VeepooSDK", "Error stopping scan: ${e.message}", e)
+        }
+    }
+
+    private fun cleanupScan() {
+        scanTimeoutRunnable?.let {
+            mainHandler.removeCallbacks(it)
+            scanTimeoutRunnable = null
+        }
+    }
+
+    private fun isBluetoothEnabled(): Boolean {
+        return try {
+            val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager
+            bluetoothManager?.adapter?.isEnabled == true
+        } catch (e: Exception) {
+            android.util.Log.e("VeepooSDK", "Error checking Bluetooth state: ${e.message}", e)
+            true // Assume enabled if we can't check
         }
     }
 
     private fun stopScan(result: Result) {
         try {
+            android.util.Log.d("VeepooSDK", "Stopping scan manually")
             vpOperateManager.stopScanDevice()
+            cleanupScan()
             result.success(true)
         } catch (e: Exception) {
+            android.util.Log.e("VeepooSDK", "Failed to stop scan: ${e.message}", e)
             result.error("SCAN_ERROR", "Failed to stop scan: ${e.message}", null)
         }
     }
