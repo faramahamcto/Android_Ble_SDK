@@ -53,7 +53,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
     private var lastScanTime = 0L
     private var scanTimeoutRunnable: Runnable? = null
     private val SCAN_TIMEOUT_MS = 60000L // 60 seconds
-    private val SCAN_THROTTLE_MS = 60000L // 1 minute between scans
+    private val SCAN_THROTTLE_MS = 5000L // 5 seconds between scans (for testing, increase to 60000L in production)
     private val RSSI_UPDATE_THRESHOLD = 10 // Only update if RSSI changes by >10 dBm
 
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
@@ -143,6 +143,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
     }
 
     override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
+        android.util.Log.d("VeepooSDK", "Method called: ${call.method}")
         when (call.method) {
             "initialize" -> initialize(result)
             "startScan" -> startScan(result)
