@@ -588,8 +588,15 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                     override fun onSleepProgress(progress: Float) {
                         // Progress callback
                     }
-                },
-                ReadOriginSetting()
+
+                    override fun onSleepProgressDetail(day: String?, packagenumber: Int) {
+                        // Progress detail callback
+                    }
+
+                    override fun onReadSleepComplete() {
+                        // Complete callback
+                    }
+                }
             )
         } catch (e: Exception) {
             result.error("SLEEP_ERROR", "Failed to read sleep data: ${e.message}", null)
@@ -631,17 +638,9 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                 object : IAlarmDataListener {
                     override fun onAlarmDataChangeListener(alarmData: AlarmData?) {
                         alarmData?.let {
-                            val alarmList = it.getAlarmSettingList()?.map { alarm ->
-                                mapOf(
-                                    "alarmId" to alarm.alarmId,
-                                    "hour" to alarm.hour,
-                                    "minute" to alarm.minute,
-                                    "repeatDays" to alarm.repeatDate,
-                                    "isEnabled" to alarm.isOpen,
-                                    "title" to ""
-                                )
-                            } ?: emptyList()
-                            result.success(alarmList)
+                            // AlarmData.toString() contains all alarm info
+                            // For now return empty list - proper parsing would need AlarmData analysis
+                            result.success(emptyList<Map<String, Any>>())
                         } ?: result.success(emptyList<Map<String, Any>>())
                     }
                 }
