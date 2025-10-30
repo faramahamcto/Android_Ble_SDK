@@ -192,7 +192,17 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
         try {
             android.util.Log.d("VeepooSDK", "Initializing VeepooSDK...")
             vpOperateManager.init(context)
-            android.util.Log.d("VeepooSDK", "VeepooSDK initialized successfully")
+
+            // CRITICAL: Register global BLE notify listener
+            // Without this, callbacks like battery, heart rate, find device won't work!
+            vpOperateManager.listenDeviceCallbackData(object : IBleNotifyResponse() {
+                override fun onNotify(service: java.util.UUID?, character: java.util.UUID?, value: ByteArray?) {
+                    super.onNotify(service, character, value)
+                    android.util.Log.v("VeepooSDK", "BLE Notify: service=$service, char=$character, data=${value?.size ?: 0} bytes")
+                }
+            })
+
+            android.util.Log.d("VeepooSDK", "VeepooSDK initialized successfully with BLE listener")
             result.success(true)
         } catch (e: Exception) {
             android.util.Log.e("VeepooSDK", "Initialization error: ${e.message}", e)
