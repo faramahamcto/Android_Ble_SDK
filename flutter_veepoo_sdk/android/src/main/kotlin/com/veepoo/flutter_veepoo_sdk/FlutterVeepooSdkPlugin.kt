@@ -833,7 +833,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
             vpOperateManager.settingFindDevice(
                 IBleWriteResponse { writeSuccess ->
                     android.util.Log.d("VeepooSDK", "Find device write response: $writeSuccess")
-                    if (!writeSuccess) {
+                    if (writeSuccess == false) {
                         result.error("FIND_ERROR", "Device does not support find feature or write failed", null)
                     }
                 },
