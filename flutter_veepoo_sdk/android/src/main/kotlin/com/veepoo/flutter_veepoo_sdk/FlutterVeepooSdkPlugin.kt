@@ -515,8 +515,8 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
         try {
             android.util.Log.d("VeepooSDK", "Starting heart rate detection...")
             vpOperateManager.startDetectHeart(
-                IBleWriteResponse { writeSuccess ->
-                    android.util.Log.d("VeepooSDK", "Heart rate write response: $writeSuccess")
+                IBleWriteResponse { writeCode ->
+                    android.util.Log.d("VeepooSDK", "Heart rate write response code: $writeCode")
                 },
                 object : IHeartDataListener {
                     override fun onDataChange(heartData: HeartData?) {
@@ -610,8 +610,8 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
         try {
             android.util.Log.d("VeepooSDK", "Starting blood oxygen detection...")
             vpOperateManager.startDetectSPO2H(
-                IBleWriteResponse { writeSuccess ->
-                    android.util.Log.d("VeepooSDK", "Blood oxygen write response: $writeSuccess")
+                IBleWriteResponse { writeCode ->
+                    android.util.Log.d("VeepooSDK", "Blood oxygen write response code: $writeCode")
                 },
                 object : ISpo2hDataListener {
                     override fun onSpO2HADataChange(spo2hData: Spo2hData?) {
@@ -831,11 +831,9 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
         try {
             android.util.Log.d("VeepooSDK", "Triggering find device...")
             vpOperateManager.settingFindDevice(
-                IBleWriteResponse { writeSuccess ->
-                    android.util.Log.d("VeepooSDK", "Find device write response: $writeSuccess")
-                    if (writeSuccess == false) {
-                        result.error("FIND_ERROR", "Device does not support find feature or write failed", null)
-                    }
+                IBleWriteResponse { writeCode ->
+                    android.util.Log.d("VeepooSDK", "Find device write response code: $writeCode")
+                    // Write response callback - just log it
                 },
                 object : IFindDeviceDatalistener {
                     override fun onFindDevice(findDeviceData: FindDeviceData?) {
@@ -871,8 +869,8 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
         try {
             android.util.Log.d("VeepooSDK", "Reading battery level...")
             vpOperateManager.readBattery(
-                IBleWriteResponse { writeSuccess ->
-                    android.util.Log.d("VeepooSDK", "Battery read write response: $writeSuccess")
+                IBleWriteResponse { writeCode ->
+                    android.util.Log.d("VeepooSDK", "Battery read write response code: $writeCode")
                 },
                 object : IBatteryDataListener {
                     override fun onDataChange(batteryData: BatteryData?) {
