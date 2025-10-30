@@ -239,8 +239,17 @@ class _HomePageState extends State<HomePage> {
       _showMessage('Connecting to ${device.name}...');
       final connected = await _sdk.connect(macAddress: device.macAddress);
       if (connected) {
+        _showMessage('Connected! Syncing data...');
+
         // Sync personal info
         await _sdk.syncPersonInfo(PersonInfo(height: 170, weight: 70.0, age: 25, sex: 1));
+
+        // Read device info (battery, steps, etc.)
+        await _readDeviceInfo();
+
+        _showMessage('Device ready!');
+      } else {
+        _showMessage('Connection failed');
       }
     } catch (e) {
       _showMessage('Failed to connect: $e');

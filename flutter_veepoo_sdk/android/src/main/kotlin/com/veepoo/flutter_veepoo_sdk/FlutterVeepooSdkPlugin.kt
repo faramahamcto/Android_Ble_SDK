@@ -513,10 +513,14 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun startHeartRateDetection(result: Result) {
         try {
+            android.util.Log.d("VeepooSDK", "Starting heart rate detection...")
             vpOperateManager.startDetectHeart(
-                IBleWriteResponse { aBoolean -> },
+                IBleWriteResponse { writeSuccess ->
+                    android.util.Log.d("VeepooSDK", "Heart rate write response: $writeSuccess")
+                },
                 object : IHeartDataListener {
                     override fun onDataChange(heartData: HeartData?) {
+                        android.util.Log.d("VeepooSDK", "Heart rate data: ${heartData?.getData()}, status: ${heartData?.getHeartStatus()}")
                         heartData?.let {
                             mainHandler.post {
                                 heartRateEventSink?.success(
@@ -532,8 +536,10 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                     }
                 }
             )
+            android.util.Log.d("VeepooSDK", "Heart rate detection started successfully")
             result.success(true)
         } catch (e: Exception) {
+            android.util.Log.e("VeepooSDK", "Failed to start heart rate: ${e.message}", e)
             result.error("HR_ERROR", "Failed to start heart rate detection: ${e.message}", null)
         }
     }
@@ -602,10 +608,14 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun startBloodOxygenDetection(result: Result) {
         try {
+            android.util.Log.d("VeepooSDK", "Starting blood oxygen detection...")
             vpOperateManager.startDetectSPO2H(
-                IBleWriteResponse { aBoolean -> },
+                IBleWriteResponse { writeSuccess ->
+                    android.util.Log.d("VeepooSDK", "Blood oxygen write response: $writeSuccess")
+                },
                 object : ISpo2hDataListener {
                     override fun onSpO2HADataChange(spo2hData: Spo2hData?) {
+                        android.util.Log.d("VeepooSDK", "Blood oxygen data: ${spo2hData?.getValue()}, checking: ${spo2hData?.isChecking()}")
                         spo2hData?.let {
                             mainHandler.post {
                                 bloodOxygenEventSink?.success(
@@ -621,8 +631,10 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                     }
                 }
             )
+            android.util.Log.d("VeepooSDK", "Blood oxygen detection started successfully")
             result.success(true)
         } catch (e: Exception) {
+            android.util.Log.e("VeepooSDK", "Failed to start blood oxygen: ${e.message}", e)
             result.error("SPO2_ERROR", "Failed to start blood oxygen detection: ${e.message}", null)
         }
     }
@@ -817,18 +829,24 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun findDevice(result: Result) {
         try {
+            android.util.Log.d("VeepooSDK", "Triggering find device...")
             vpOperateManager.settingFindDevice(
-                IBleWriteResponse { aBoolean ->
-                    // Write response
+                IBleWriteResponse { writeSuccess ->
+                    android.util.Log.d("VeepooSDK", "Find device write response: $writeSuccess")
+                    if (!writeSuccess) {
+                        result.error("FIND_ERROR", "Device does not support find feature or write failed", null)
+                    }
                 },
                 object : IFindDeviceDatalistener {
                     override fun onFindDevice(findDeviceData: FindDeviceData?) {
+                        android.util.Log.d("VeepooSDK", "Find device callback received: $findDeviceData")
                         result.success(true)
                     }
                 },
                 true
             )
         } catch (e: Exception) {
+            android.util.Log.e("VeepooSDK", "Failed to find device: ${e.message}", e)
             result.error("FIND_ERROR", "Failed to find device: ${e.message}", null)
         }
     }
@@ -851,10 +869,15 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private fun readBattery(result: Result) {
         try {
+            android.util.Log.d("VeepooSDK", "Reading battery level...")
             vpOperateManager.readBattery(
-                IBleWriteResponse { aBoolean -> },
+                IBleWriteResponse { writeSuccess ->
+                    android.util.Log.d("VeepooSDK", "Battery read write response: $writeSuccess")
+                },
                 object : IBatteryDataListener {
                     override fun onDataChange(batteryData: BatteryData?) {
+                        val level = batteryData?.getBatteryLevel() ?: 0
+                        android.util.Log.d("VeepooSDK", "Battery level: $level%")
                         batteryData?.let {
                             result.success(it.getBatteryLevel())
                         } ?: result.success(null)
@@ -862,6 +885,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                 }
             )
         } catch (e: Exception) {
+            android.util.Log.e("VeepooSDK", "Failed to read battery: ${e.message}", e)
             result.error("BATTERY_ERROR", "Failed to read battery: ${e.message}", null)
         }
     }
