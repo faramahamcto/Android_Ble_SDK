@@ -47,6 +47,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var currentMacAddress: String? = null
+    private var isDeviceBound = false  // Track if device is fully bound (connect + password + person info)
 
     // BLE Scanning improvements
     private val discoveredDevices = mutableMapOf<String, Map<String, Any?>>()
@@ -150,6 +151,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
             "stopScan" -> stopScan(result)
             "connect" -> connect(call, result)
             "disconnect" -> disconnect(result)
+            "isDeviceBound" -> isDeviceBound(result)
             "syncPersonInfo" -> syncPersonInfo(call, result)
             "getDeviceFunctions" -> getDeviceFunctions(result)
             "startHeartRateDetection" -> startHeartRateDetection(result)
@@ -456,9 +458,11 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                     override fun OnPersoninfoDataChange(status: EOprateStauts?) {
                         if (status == EOprateStauts.OPRATE_SUCCESS) {
                             android.util.Log.d("VeepooSDK", "BIND COMPLETE - Device is fully initialized and ready!")
+                            isDeviceBound = true  // Mark device as fully bound
                             result.success(true)
                         } else {
                             android.util.Log.e("VeepooSDK", "Person info sync failed: $status")
+                            isDeviceBound = false
                             result.error("BIND_ERROR", "Failed to complete device binding", null)
                         }
                     }
@@ -475,11 +479,18 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
         try {
             vpOperateManager.disconnectWatch(IBleWriteResponse { aBoolean ->
                 currentMacAddress = null
+                isDeviceBound = false  // Reset bind status on disconnect
+                android.util.Log.d("VeepooSDK", "Device disconnected, bind status reset")
                 result.success(true)
             })
         } catch (e: Exception) {
             result.error("DISCONNECT_ERROR", "Failed to disconnect: ${e.message}", null)
         }
+    }
+
+    private fun isDeviceBound(result: Result) {
+        android.util.Log.d("VeepooSDK", "Checking bind status: $isDeviceBound")
+        result.success(isDeviceBound)
     }
 
     private fun syncPersonInfo(call: MethodCall, result: Result) {

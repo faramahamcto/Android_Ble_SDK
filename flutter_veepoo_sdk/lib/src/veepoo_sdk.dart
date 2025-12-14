@@ -100,6 +100,23 @@ class VeepooSDK {
     }
   }
 
+  /// Check if device is fully bound (connected + password confirmed + person info synced)
+  ///
+  /// Returns true if the device is ready for health measurements (heart rate, temperature, etc.)
+  /// Returns false if only connected but not fully bound, or if disconnected
+  ///
+  /// This is different from connection status:
+  /// - Connected: BLE connection established
+  /// - Bound: Device is initialized with user data and ready for use
+  Future<bool> isDeviceBound() async {
+    try {
+      final result = await _methodChannel.invokeMethod<bool>('isDeviceBound');
+      return result ?? false;
+    } on PlatformException catch (e) {
+      throw VeepooException('Failed to check bind status: ${e.message}');
+    }
+  }
+
   /// Listen to connection state changes
   Stream<ConnectionState> get connectionStateStream {
     _connectionStream ??= _connectionEventChannel.receiveBroadcastStream().map((event) {
