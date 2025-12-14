@@ -374,6 +374,7 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
         currentMacAddress = macAddress
 
         try {
+            android.util.Log.d("VeepooSDK", "Connecting to device: $macAddress")
             vpOperateManager.connectDevice(
                 macAddress,
                 "",  // Device name (can be empty)
@@ -393,16 +394,23 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                         }
 
                         if (code == Code.REQUEST_SUCCESS) {
-                            // Device connected, now confirm password
+                            android.util.Log.d("VeepooSDK", "Device connected, starting bind process...")
+
+                            // STEP 1: Confirm password and get device info
                             vpOperateManager.confirmDevicePwd(
                                 IBleWriteResponse { writeCode ->
-                                    // Write response callback
+                                    android.util.Log.d("VeepooSDK", "Password write response: $writeCode")
                                 },
                                 object : IPwdDataListener {
                                     override fun onPwdDataChange(pwdData: PwdData?) {
                                         if (pwdData?.getmStatus() == EPwdStatus.CHECK_SUCCESS) {
-                                            result.success(true)
+                                            android.util.Log.d("VeepooSDK", "Password confirmed - Device #${pwdData.getDeviceNumber()}, Version: ${pwdData.getDeviceVersion()}")
+
+                                            // STEP 2: Auto-sync person info after password success
+                                            // This is CRITICAL for features to work!
+                                            autoSyncPersonInfo(result)
                                         } else {
+                                            android.util.Log.e("VeepooSDK", "Password verification failed: ${pwdData?.getmStatus()}")
                                             result.error("AUTH_ERROR", "Password authentication failed", null)
                                         }
                                     }
@@ -419,12 +427,47 @@ class FlutterVeepooSdkPlugin : FlutterPlugin, MethodCallHandler {
                 },
                 object : INotifyResponse {
                     override fun notifyState(state: Int) {
-                        // Notify state callback
+                        android.util.Log.d("VeepooSDK", "Notify state: $state")
                     }
                 }
             )
         } catch (e: Exception) {
+            android.util.Log.e("VeepooSDK", "Connect error: ${e.message}", e)
             result.error("CONNECT_ERROR", "Failed to connect: ${e.message}", null)
+        }
+    }
+
+    // Auto-sync person info with default values
+    // User can call syncPersonInfo() later to update with real values
+    private fun autoSyncPersonInfo(result: Result) {
+        try {
+            android.util.Log.d("VeepooSDK", "Auto-syncing person info (completing bind process)...")
+
+            // Use default person info for initial binding
+            // Height: 170cm, Weight: 70kg, Age: 25, Sex: Male, StepGoal: 8000
+            val eSex = ESex.MAN
+            val personInfo = PersonInfoData(eSex, 170, 70, 25, 8000)
+
+            vpOperateManager.syncPersonInfo(
+                IBleWriteResponse { writeCode ->
+                    android.util.Log.d("VeepooSDK", "Person info write response: $writeCode")
+                },
+                object : IPersonInfoDataListener {
+                    override fun OnPersoninfoDataChange(status: EOprateStauts?) {
+                        if (status == EOprateStauts.OPRATE_SUCCESS) {
+                            android.util.Log.d("VeepooSDK", "BIND COMPLETE - Device is fully initialized and ready!")
+                            result.success(true)
+                        } else {
+                            android.util.Log.e("VeepooSDK", "Person info sync failed: $status")
+                            result.error("BIND_ERROR", "Failed to complete device binding", null)
+                        }
+                    }
+                },
+                personInfo
+            )
+        } catch (e: Exception) {
+            android.util.Log.e("VeepooSDK", "Auto-sync person info error: ${e.message}", e)
+            result.error("BIND_ERROR", "Failed to sync person info: ${e.message}", null)
         }
     }
 
